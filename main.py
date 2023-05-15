@@ -1,30 +1,24 @@
 # Importamos las librerías
 import pandas as pd 
 import numpy as np
+import sklearn
 from fastapi import FastAPI
+from sklearn.feature_extraction.text import CountVectorizer 
+from sklearn.neighbors import NearestNeighbors
 
 # Indicamos título y descripción de la API
 app = FastAPI(title='PROYECTO INDIVIDUAL Nº1 -Machine Learning Operations (MLOps)',
             description='API de datos y recomendaciones de películas')
 
-# http://127.0.0.1:8000/
+# Se importan los dataset que se van a usar
+df = pd.read_csv('movies_ok_1.csv')
+df1 = pd.read_csv('movies_machine_learning.csv')
 
 
-# Función para que el la API tome el dataframe
-@app.get('/') 
-async def read_root():
-    return {'Hola! Bienvenido a la API de recomedación. Por favor dirigite a /docs'}
-
-@app.on_event('startup')
-async def startup():
-    global df
-    df = pd.read_csv('movies_ok_1.csv') 
-
-# Función para reconocer el servidor local
-
+# Función para dar la bienvenida al sistema de recomendacion
 @app.get('/')
 async def index():
-    return {'Hola! Bienvenido a la API de recomedación. Por favor dirigite a /docs'}
+    return {'Bienvenido a la API de recomedación y consulta de peliculas. Por favor dirigite a /docs'}
 
 @app.get('/about/')
 async def about():
@@ -66,7 +60,7 @@ def peliculas_mes(mes):
     return {'mes':mes, 'cantidad':respuesta}
 
 # Funcion de consulta de peliculas por dia de la semana 
-@app.get('/peliculas_dis/{dis}')
+@app.get('/peliculas_dis/{dia}')
 def peliculas_dia(dia):
 
     days = {
@@ -136,4 +130,43 @@ def retorno(pelicula):
     year_pelicula = str(info_pelicula['release_year'].iloc[0])
 
     return {'pelicula':pelicula_nombre, 'inversion':inversion_pelicula, 'ganacia':ganancia_pelicula,'retorno':retorno_pelicula, 'anio':year_pelicula}
+
+
+
+#  En esta matriz, cada fila representa una película y cada columna 
+# representa un termino en las caracteristicas combinadas
+cv = CountVectorizer(stop_words='english', max_features=5000)
+count_matrix = cv.fit_transform(df1['tags'])
+
+# Creamos un modelo para encontrar los vecinos mas cercanos en un espacio de caracterisicaa
+nn = NearestNeighbors(metric='cosine', algorithm='brute')
+nn.fit(count_matrix)
+
+# Creamos un indice de titulos de peliculas y eliminamos los duplicados
+indices = pd.Series(df1.index, index=df1['title']).drop_duplicates()
+
+
+@app.get("/recomendacion/{titulo}")
+def recomendacion(title: str):
+    '''Ingresas un nombre de pelicula y te recomienda las similares en una lista
+    ''' 
+    # Verifica si el titulo ingresado se encuentra en el df
+    if title not in df1['title'].values:
+        return 'La pelicula no se encuentra en el conjunto de la base de datos.'
+    else:
+        # Si el título esta en el df, encuentra su indice
+        index = indices[title]
+
+        # Obtiene las puntuaciones de similitud de las 5 peliculas más cercanas
+        distances, indices_knn = nn.kneighbors(count_matrix[index], n_neighbors=6)  # indica que queremos encontrar las 6 peliculas más similares, incluyendo la pelicula dada
+
+        # Obtiene los indices de las peliculas
+        movie_indices = indices_knn[0][1:]  # Se omite el primer indice (la pelicula misma) con [1:]
+
+        # Devuelve las 5 peliculas mas similares
+        return df1['title'].iloc[movie_indices].tolist()
+    
+
+
+
 
