@@ -1,4 +1,4 @@
-# Importamos las librerías
+# Importamos las librerías necesarias para el uso de la API
 import pandas as pd 
 import numpy as np
 import sklearn
@@ -8,9 +8,9 @@ from sklearn.neighbors import NearestNeighbors
 
 # Indicamos título y descripción de la API
 app = FastAPI(title='PROYECTO INDIVIDUAL Nº1 -Machine Learning Operations (MLOps)',
-            description='API de datos y recomendaciones de películas')
+            description='API de datos y recomendaciones de películas basado en machine learning')
 
-# Se importan los dataset que se van a usar
+# Se importan los datasets que se van a usar
 df = pd.read_csv('movies_ok_1.csv')
 df1 = pd.read_csv('movies_machine_learning.csv')
 
@@ -131,7 +131,7 @@ def retorno(pelicula):
 
     return {'pelicula':pelicula_nombre, 'inversion':inversion_pelicula, 'ganacia':ganancia_pelicula,'retorno':retorno_pelicula, 'anio':year_pelicula}
 
-
+# PARAMETROS PARA LA EJECUCION DE LA FUNCION DE RECOMENDACION BASADA EN MACHINE LEARNING
 
 #  En esta matriz, cada fila representa una película y cada columna 
 # representa un termino en las caracteristicas combinadas
